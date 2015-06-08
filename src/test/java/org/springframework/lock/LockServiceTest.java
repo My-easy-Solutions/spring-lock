@@ -29,13 +29,17 @@ public class LockServiceTest {
       Thread t1 = new Thread(r);
       Thread t2 = new Thread(r);
 
+      // Start first thread
       t1.start();
       assertTrue(t1.isAlive());
-      Thread.sleep(100);
+      Thread.sleep(100); // Thread t1 should be first
+
+      // Start second thread
       t2.start();
       assertTrue(t2.isAlive());
 
       testBean.wakeUp();
+
       t1.join(100);
       t2.join(100);
       assertFalse(t1.isAlive());

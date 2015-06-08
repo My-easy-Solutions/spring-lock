@@ -16,7 +16,7 @@ import java.lang.annotation.Target;
 public @interface Lock {
 
    /** Maximum timeout to wait for lock in milleseconds. */
-   long timeout() default 1000L;
+   long timeout() default -1L;
 
    /** Lock identifier. */
    String value();

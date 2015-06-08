@@ -13,6 +13,9 @@ import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.lock.LockService;
 import org.springframework.lock.interceptor.LockInterceptor;
 import org.springframework.lock.local.LocalLockService;
+import org.springframework.lock.support.AbstractLockSynchronizationManager;
+import org.springframework.lock.support.DefaultLockSynchronizationManager;
+import org.springframework.lock.support.SessionTransactedLockSynchronizationManager;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
@@ -44,9 +47,16 @@ public class ProxyLockConfiguration implements ImportAware {
    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
    public LockInterceptor lockInterceptor() {
       LockInterceptor interceptor = new LockInterceptor();
-      interceptor.setLockService(lockService);
       interceptor.setLockAttributeSource(lockAttributeSource());
-      interceptor.setSessionTransacted(enableLock.getBoolean("sessionTransacted"));
+
+      AbstractLockSynchronizationManager synchronizationManager;
+      if (enableLock.getBoolean("sessionTransacted")) {
+         synchronizationManager = new SessionTransactedLockSynchronizationManager();
+      } else {
+         synchronizationManager = new DefaultLockSynchronizationManager();
+      }
+      synchronizationManager.setLockService(lockService);
+      interceptor.setSynchronizationManager(synchronizationManager);
 
       return interceptor;
    }
@@ -54,7 +64,7 @@ public class ProxyLockConfiguration implements ImportAware {
    @Override
    public void setImportMetadata(final AnnotationMetadata importMetadata) {
       enableLock = AnnotationAttributes.fromMap(
-                                                importMetadata.getAnnotationAttributes(EnableLock.class.getName(), false));
+               importMetadata.getAnnotationAttributes(EnableLock.class.getName(), false));
       if (enableLock == null) {
          throw new IllegalArgumentException(
                                             "@EnableLock is not present on importing class "

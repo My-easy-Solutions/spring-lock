@@ -12,25 +12,23 @@ import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.lock.LockException;
 import org.springframework.lock.LockInstance;
-import org.springframework.lock.LockService;
 import org.springframework.lock.annotation.LockAttribute;
 import org.springframework.lock.annotation.LockAttributeSource;
+import org.springframework.lock.support.LockSynchronizationManager;
 
 public class LockInterceptor implements InitializingBean, MethodInterceptor, Serializable {
 
-   private static final long   serialVersionUID = 1L;
+   private static final long          serialVersionUID = 1L;
 
-   private static final Logger LOGGER           = LoggerFactory.getLogger(LockInterceptor.class);
+   private static final Logger        LOGGER           = LoggerFactory.getLogger(LockInterceptor.class);
 
-   private LockService         lockService;
+   private LockAttributeSource        lockAttributeSource;
 
-   private LockAttributeSource lockAttributeSource;
-
-   private boolean             sessionTransacted;
+   private LockSynchronizationManager synchronizationManager;
 
    @Override
    public void afterPropertiesSet() throws Exception {
-      requireNonNull(lockService);
+      requireNonNull(synchronizationManager);
       requireNonNull(lockAttributeSource);
    }
 
@@ -38,10 +36,10 @@ public class LockInterceptor implements InitializingBean, MethodInterceptor, Ser
    public Object invoke(final MethodInvocation invocation) throws Throwable {
 
       Class<?> targetClass = invocation.getThis() != null ? AopUtils.getTargetClass(invocation.getThis())
-                                                          : null;
+                                                         : null;
 
       LockAttribute lockAttribute = lockAttributeSource.getLockAttribute(invocation.getMethod(), targetClass);
-      LockInstance lock = acquireLock(lockAttribute);
+      LockInstance lock = acquireLock(lockAttribute, invocation.getArguments());
       try {
          return invocation.proceed();
       } finally {
@@ -54,18 +52,15 @@ public class LockInterceptor implements InitializingBean, MethodInterceptor, Ser
       this.lockAttributeSource = lockAttributeSource;
    }
 
-   public void setLockService(final LockService lockService) {
-      this.lockService = lockService;
+   public void setSynchronizationManager(final LockSynchronizationManager synchronizationManager) {
+      this.synchronizationManager = synchronizationManager;
    }
 
-   public void setSessionTransacted(final boolean sessionTransacted) {
-      this.sessionTransacted = sessionTransacted;
-   }
-
-   private LockInstance acquireLock(final LockAttribute lockAttribute) {
+   private LockInstance acquireLock(final LockAttribute lockAttribute, final Object[] arguments) {
       LockInstance lock = null;
       if (null != lockAttribute) {
-         lock = lockService.acquire(lockAttribute.getKey(), null, -1L);
+         lock = synchronizationManager.acquire(lockAttribute.getKey(), lockAttribute.getIdentifier(arguments),
+                                               lockAttribute.getTimeout());
       }
       return lock;
    }
@@ -73,7 +68,7 @@ public class LockInterceptor implements InitializingBean, MethodInterceptor, Ser
    private void releaseLock(final LockInstance lock) {
       if (null != lock) {
          try {
-            lockService.release(lock);
+            synchronizationManager.release(lock);
          } catch (LockException e) {
             LOGGER.warn("Failed to release lock {}", lock, e);
          }

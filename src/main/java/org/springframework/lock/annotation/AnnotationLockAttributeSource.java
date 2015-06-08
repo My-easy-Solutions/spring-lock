@@ -14,7 +14,7 @@ import org.springframework.util.ObjectUtils;
 
 public class AnnotationLockAttributeSource implements LockAttributeSource {
 
-   private static final LockAttribute       DEFAULT_LOCK_ATTRIBUTE = new DefaultLockAttribute(null);
+   private static final LockAttribute       DEFAULT_LOCK_ATTRIBUTE = new DefaultLockAttribute(null, null, -1L);
 
    private Logger                           logger                 = LoggerFactory.getLogger(getClass());
 

@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Role;
 import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.lock.LockService;
+import org.springframework.lock.event.LockEventPublisher;
 import org.springframework.lock.interceptor.LockInterceptor;
 import org.springframework.lock.local.LocalLockService;
 import org.springframework.lock.support.AbstractLockSynchronizationManager;
@@ -45,6 +46,12 @@ public class ProxyLockConfiguration implements ImportAware {
 
    @Bean
    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+   public LockEventPublisher lockEventPublisher() {
+      return new LockEventPublisher();
+   }
+
+   @Bean
+   @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
    public LockInterceptor lockInterceptor() {
       LockInterceptor interceptor = new LockInterceptor();
       interceptor.setLockAttributeSource(lockAttributeSource());
@@ -56,6 +63,7 @@ public class ProxyLockConfiguration implements ImportAware {
          synchronizationManager = new DefaultLockSynchronizationManager();
       }
       synchronizationManager.setLockService(lockService);
+      synchronizationManager.setLockEventPublisher(lockEventPublisher());
       interceptor.setSynchronizationManager(synchronizationManager);
 
       return interceptor;
@@ -64,7 +72,7 @@ public class ProxyLockConfiguration implements ImportAware {
    @Override
    public void setImportMetadata(final AnnotationMetadata importMetadata) {
       enableLock = AnnotationAttributes.fromMap(
-               importMetadata.getAnnotationAttributes(EnableLock.class.getName(), false));
+                                                importMetadata.getAnnotationAttributes(EnableLock.class.getName(), false));
       if (enableLock == null) {
          throw new IllegalArgumentException(
                                             "@EnableLock is not present on importing class "

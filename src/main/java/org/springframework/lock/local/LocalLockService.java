@@ -38,17 +38,17 @@ public class LocalLockService implements LockService {
             acquired = true;
          } else {
             acquired = semaphore.tryAcquire(timeout < 0 ? Long.MAX_VALUE
-                                                        : timeout, TimeUnit.MILLISECONDS);
+                                                       : timeout, TimeUnit.MILLISECONDS);
          }
 
          if (acquired) {
             return new DefaultLockInstance(key, identifier);
          } else {
             throw new LockException("Could not acquire lock "
-                                    + key + "@" + identifier + " in " + timeout + "ms");
+                     + key + "@" + identifier + " in " + timeout + "ms");
          }
       } catch (InterruptedException e) {
-         throw new LockException();
+         throw new LockException(e);
       }
    }
 
